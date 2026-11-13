@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Areshey, washroom ka sach 🚽💖</title>
+<style>
+:root{--bg:#0d0a18;--fg:#fff4ee;--gold:#ffd9a8;--card:rgba(18,10,32,.68);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#rain{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.p{position:absolute;top:-40px;animation:f linear forwards}
+@keyframes f{to{transform:translate(var(--dx),110vh) rotate(var(--r))}}
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 14px calc(18px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+#card{max-width:480px;width:100%;background:var(--card);backdrop-filter:blur(14px);border:1px solid rgba(255,217,168,.25);border-radius:24px;padding:18px;text-align:center;box-shadow:0 0 50px rgba(255,92,138,.2)}
+#txt{font-size:18px;line-height:1.55;min-height:96px;display:flex;align-items:center;justify-content:center;margin:0 0 12px;white-space:pre-line;color:var(--gold)}
+#timer{font-size:42px;font-weight:800;font-variant-numeric:tabular-nums;display:none;margin:0 0 4px;color:#9dffc4}
+#timer.bad{color:#ff5b6b;animation:s .14s infinite}
+@keyframes s{50%{transform:translateX(5px) rotate(1deg)}}
+.row{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+button{font:700 16px system-ui,sans-serif;border:0;border-radius:999px;padding:13px 24px;color:#2a0d1a;background:linear-gradient(135deg,#ffd9b0,#ff8fb0);cursor:pointer;transition:transform .35s}
+button.no{background:rgba(255,255,255,.12);color:var(--fg);font-weight:500}
+button:disabled{opacity:.5}
+.shk{animation:s .12s 5}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="rain"></div>
+<div id="ui"><div id="card">
+<div id="timer">00:00</div>
+<p id="txt"></p>
+<div class="row"><button id="yes">Kahani shuru 🚽</button><button id="no" class="no" style="display:none"></button></div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const txt=$('txt'),yes=$('yes'),no=$('no'),timer=$('timer'),rain=$('rain'),card=$('card');
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.5},o));
+// ---------- scene ----------
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0d0a18);
+const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,100);
+const R=new THREE.WebGLRenderer({canvas:$('c'),antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight);
+scene.add(new THREE.AmbientLight(0xfff0e6,.7));
+const lamp=new THREE.PointLight(0xffc2a8,1.6,25);lamp.position.set(0,4.5,1);scene.add(lamp);
+const pk=new THREE.PointLight(0xff6f9c,1.3,18);pk.position.set(-2,2,3);scene.add(pk);
+const DN=500,dp=new Float32Array(DN*3);for(let q=0;q<DN*3;q+=3){dp[q]=(Math.random()-.5)*9;dp[q+1]=Math.random()*4.6;dp[q+2]=Math.random()*9-3.5}
+const dg=new THREE.BufferGeometry();dg.setAttribute('position',new THREE.BufferAttribute(dp,3));
+const dust=new THREE.Points(dg,new THREE.PointsMaterial({color:0xffe2b8,size:.06,transparent:true,opacity:.85}));scene.add(dust);
+// tile room
+const tc=document.createElement('canvas');tc.width=tc.height=128;const tx=tc.getContext('2d');
+tx.fillStyle='#f4dde3';tx.fillRect(0,0,128,128);tx.strokeStyle='#d9a2b4';tx.lineWidth=4;tx.strokeRect(0,0,128,128);
+const tt=new THREE.CanvasTexture(tc);tt.wrapS=tt.wrapT=THREE.RepeatWrapping;tt.repeat.set(5,3);
+const room=new THREE.Mesh(new THREE.BoxGeometry(10,5,10),new THREE.MeshStandardMaterial({map:tt,side:THREE.BackSide,roughness:.6}));room.position.set(0,2.5,1);scene.add(room);
+// toilet
+const T=new THREE.Group();T.position.set(3.2,0,-3.3);scene.add(T);
+const wh=M(0xffffff,{roughness:.2});
+const base=new THREE.Mesh(new THREE.CylinderGeometry(.4,.3,.45,28),wh);base.position.y=.22;T.add(base);
+const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.5,.4,.3,28),wh);bowl.position.set(0,.55,.15);T.add(bowl);
+const tank=new THREE.Mesh(new THREE.BoxGeometry(.9,.8,.35),wh);tank.position.set(0,.95,-.45);T.add(tank);
+const lid=new THREE.Group();lid.position.set(0,.72,-.18);T.add(lid);
+const lm=new THREE.Mesh(new THREE.CylinderGeometry(.47,.47,.05,28),M(0xf2f2f2));lm.position.z=.33;lid.add(lm);
+// clock
+const clk=new THREE.Group();clk.position.set(0,3.4,-3.95);scene.add(clk);
+clk.add(new THREE.Mesh(new THREE.CircleGeometry(.85,48),M(0xffffff)));
+const ring=new THREE.Mesh(new THREE.RingGeometry(.8,.9,48),M(0x333344));ring.position.z=.01;clk.add(ring);
+function hand(w,l,c){const g=new THREE.Group();const m=new THREE.Mesh(new THREE.BoxGeometry(w,l,.02),M(c));m.position.y=l/2;g.add(m);g.position.z=.04;clk.add(g);return g}
+const hM=hand(.05,.6,0x222222),hS=hand(.02,.7,0xff3355);
+// phone
+const pc=document.createElement('canvas');pc.width=300;pc.height=560;const px=pc.getContext('2d');const ptex=new THREE.CanvasTexture(pc);
+const phone=new THREE.Group();phone.position.set(0,1.7,1.6);scene.add(phone);
+phone.add(new THREE.Mesh(new THREE.BoxGeometry(1.3,2.4,.1),M(0x15151f,{metalness:.6})));
+const scr=new THREE.Mesh(new THREE.PlaneGeometry(1.2,2.24),new THREE.MeshBasicMaterial({map:ptex}));scr.position.z=.06;phone.add(scr);
+let chat=[];
+function draw(){px.fillStyle='#111827';px.fillRect(0,0,300,560);px.fillStyle='#ff5c8a';px.fillRect(0,0,300,64);
+  px.fillStyle='#fff';px.font='bold 24px sans-serif';px.fillText('Areshey 💖',16,40);
+  let y=90;chat.forEach(m=>{const me=m.me;px.font='19px sans-serif';const w=Math.min(250,px.measureText(m.t).width+28);
+    px.fillStyle=me?'#2b8a5a':'#2d3348';const x=me?300-w-12:12;px.fillRect(x,y,w,40);px.fillStyle='#fff';px.fillText(m.t,x+14,y+27);y+=54});ptex.needsUpdate=true}
+function msg(t,me){chat.push({t,me});draw();phone.userData.pop=1;tone(880,.2,'sine',.06);buzz([60,40,60])}
+// door
+const door=new THREE.Group();door.position.set(-4.98,0,-1.3);scene.add(door);
+const dm=new THREE.Mesh(new THREE.BoxGeometry(.12,2.7,1.4),M(0x8a5a3a));dm.position.set(.02,1.35,.7);door.add(dm);
+const sc=document.createElement('canvas');sc.width=256;sc.height=128;const sx=sc.getContext('2d');const stex=new THREE.CanvasTexture(sc);
+function sign(t,c){sx.fillStyle=c;sx.fillRect(0,0,256,128);sx.fillStyle='#fff';sx.font='bold 38px sans-serif';sx.textAlign='center';sx.fillText(t,128,76);stex.needsUpdate=true}
+sign('OCCUPIED','#c0273d');
+const sp=new THREE.Mesh(new THREE.PlaneGeometry(.7,.35),new THREE.MeshBasicMaterial({map:stex}));sp.rotation.y=Math.PI/2;sp.position.set(.1,1.9,.7);door.add(sp);
+const hole=new THREE.Mesh(new THREE.PlaneGeometry(1.4,2.7),new THREE.MeshBasicMaterial({color:0xfff2d6}));hole.rotation.y=Math.PI/2;hole.position.set(-4.99,1.35,-.6);scene.add(hole);
+// heart
+const s=new THREE.Shape();s.moveTo(.25,.25);s.bezierCurveTo(.25,.25,.2,0,0,0);s.bezierCurveTo(-.3,0,-.3,.35,-.3,.35);s.bezierCurveTo(-.3,.55,-.1,.77,.25,.95);s.bezierCurveTo(.6,.77,.8,.55,.8,.35);s.bezierCurveTo(.8,.35,.8,0,.5,0);s.bezierCurveTo(.35,0,.25,.25,.25,.25);
+const hg=new THREE.ExtrudeGeometry(s,{depth:.3,bevelEnabled:true,bevelThickness:.12,bevelSize:.09,bevelSegments:6,curveSegments:22});hg.center();
+const hm=M(0xff4f7e,{roughness:.2,metalness:.4,emissive:0x4a0820});const heart=new THREE.Mesh(hg,hm);heart.position.set(0,2.2,1.2);heart.scale.setScalar(0);scene.add(heart);
+let burst=null,bv=[];
+function bloom(){const n=1200,p=new Float32Array(n*3),c=new Float32Array(n*3);bv=[];
+  for(let i=0;i<n;i++){bv.push(V(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize().multiplyScalar(.03+Math.random()*.12));const col=new THREE.Color(Math.random()<.5?0xff5c8a:0xffd9a8);c.set([col.r,col.g,col.b],i*3);p[i*3]=heart.position.x;p[i*3+1]=heart.position.y;p[i*3+2]=heart.position.z}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+  burst=new THREE.Points(g,new THREE.PointsMaterial({size:.13,vertexColors:true}));scene.add(burst);heart.visible=false}
+// ---------- sound / haptics ----------
+let ac;function tone(f,d=.3,t='sine',v=.06,at=0){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;const T0=ac.currentTime+at;g.gain.setValueAtTime(v,T0);g.gain.exponentialRampToValueAtTime(.0001,T0+d);o.connect(g).connect(ac.destination);o.start(T0);o.stop(T0+d+.05)}catch(e){}}
+const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+let mood='minor',music=0,ni=0;const prog={minor:[[220,261.6,329.6,440],[174.6,220,261.6,349.2],[130.8,196,261.6,329.6],[196,246.9,293.7,392]],major:[[261.6,329.6,392,523.3],[220,277.2,329.6,440],[174.6,220,261.6,349.2],[196,246.9,293.7,392]]};
+function startMusic(){if(music)return;music=1;setInterval(()=>{const ch=prog[mood][Math.floor(ni/4)%4];tone(ch[ni%4],1.8,'sine',.04);if(ni%4===0)tone(ch[0]/2,3,'triangle',.04);ni++},650)}
+let mx=0,my=0;addEventListener('pointermove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=(e.clientY/innerHeight-.5)*2});
+addEventListener('deviceorientation',e=>{if(e.gamma!=null){mx=Math.max(-1,Math.min(1,e.gamma/30));my=Math.max(-1,Math.min(1,(e.beta-45)/30))}});
+// ---------- story ----------
+// each step: camera pos, look target, text, button
+const steps=[
+ {p:[0,1.8,5.2],l:[0,1.7,1.6],t:'Areshey ne kaha tha:\n“Mera intizar karna.”\nAur main… poore dil se karna chahta tha. 🤍',b:'Kahani shuru 🚽',on(){chat=[];msg('Mera intizar karna 🙂',0)}},
+ {p:[-0.5,1.5,2.2],l:[-5,1.4,-0.6],t:'Main tumhare ek message ke saath\nwahin thehra hua tha…\ntabhi nature ne achanak darwaze pe dastak di. 🚪',b:'Aage ➜'},
+ {p:[1.5,1.9,0.5],l:[3.2,.8,-3.3],t:'Mujhe laga bas ek minute ka kaam hai.\nPhone bahar reh gaya… aur mera dil\nbhi tumhare paas hi reh gaya. 🚽🤍',b:'Aage ➜',on(){lid.rotation.x=-1.3}},
+ {p:[0,2.4,2.5],l:[0,3.3,-3.9],t:'Tumne 2 minute maange the,\naur meri majboori ne 5 le liye.\nHar pal mujhe tumhari yaad aati rahi. ⏰',b:'Aage ➜',timer:1},
+ {p:[0,1.8,4.2],l:[0,1.7,1.6],t:'Tumhare har message mein fikr thi,\naur main wahan unhe\npadh bhi nahi paa raha tha. 📳',b:'Aage ➜',on(){msg('2 minute mein jawab?? 😠',0);setTimeout(()=>msg('Seen kahan hai??',0),900)}},
+ {p:[-1.2,1.6,2.2],l:[-5,1.3,-0.6],t:'Main bhaagta hua bahar aaya,\ntumhare paas… par 5 minute ho chuke the.\nMujhe dil se afsos hai. 🏃‍♂️💫',b:'Aage ➜',on(){sign('FREE','#1f9d57');open=1}},
+ {p:[0,2,5],l:[0,2,1.2],t:'Areshey, nature ki pukaar thi,\ntumhari ahmiyat kabhi kam nahi thi.\nTum mere liye bahut khaas ho.\nMujhe maaf kar do? 🥺🌹',b:'Haan, maaf kiya 💖',ask:1,on(){hs=1}}
+];
+let i=-1,lvl=0,open=0,hs=0,sec=0,tick=0,camP=V(0,1.8,5.2),camL=V(0,1.7,1.6),tgP=camP.clone(),tgL=camL.clone(),tw;
+const type=s=>{clearInterval(tw);txt.textContent='';let k=0;tw=setInterval(()=>{txt.textContent=s.slice(0,++k);if(k>=s.length)clearInterval(tw)},28)};
+function go(n){
+  i=n;const st=steps[i];tgP.set(...st.p);tgL.set(...st.l);type(st.t);yes.textContent=st.b;yes.disabled=false;
+  timer.style.display=st.timer?'block':'none';if(st.on)st.on();
+  if(st.timer)runTimer();
+  if(st.ask){no.style.display='';no.textContent=noTxt[0]}
+  tone(523,.5);
+}
+function runTimer(){yes.disabled=true;sec=0;timer.className='';const iv=setInterval(()=>{sec+=6;timer.textContent='0'+Math.floor(sec/60)+':'+(sec%60<10?'0':'')+sec%60;
+  tone(1200,.03,'square',.02);
+  if(sec===120){timer.className='bad';buzz([120,60,120]);msg('Reply kab karoge?? 😤',0)}
+  if(sec>=300){clearInterval(iv);timer.textContent='05:00 😭';buzz([300]);yes.disabled=false}},55)}
+const noTxt=['Abhi nahi 😤','Sochne do 🤨','Phir bhi nahi 🙄','Thoda aur 😏','Last warning ⚠️'];
+const sad=['Theek hai, tum jitna waqt lo…\nmain yahin hoon. 🥀','Agli baar tumhare har message ko\nsabse pehle rakhunga. 📱🤍','Tumhari naraazgi bhi pyaari hai,\npar tumhari hansi usse zyada. 🌙','Dekho, dil bhi udaas ho gaya…\nbas tumhari ek muskaan chahiye. 💔','Ab “Nahi” ka button hata deta hoon,\nmain tumhe khona nahi chahta. 🥹'];
+function petals(l,n,d){for(let k=0;k<n;k++){const e=document.createElement('span');e.className='p';e.textContent=l[Math.floor(Math.random()*l.length)];e.style.left=Math.random()*100+'%';e.style.fontSize=(16+Math.random()*20)+'px';e.style.setProperty('--dx',(Math.random()*100-50)+'px');e.style.setProperty('--r',(Math.random()*720-360)+'deg');e.style.animationDuration=(d+Math.random()*3)+'s';rain.appendChild(e);setTimeout(()=>e.remove(),(d+4)*1000)}}
+yes.onclick=()=>{startMusic();try{DeviceOrientationEvent.requestPermission&&DeviceOrientationEvent.requestPermission()}catch(e){}
+  if(i<steps.length-1)go(i+1);else accept()};
+no.onclick=()=>{lvl++;buzz([200,80,200]);tone(150,.5,'triangle',.08);hm.color.setHex(0x8a5a90);hm.emissive.setHex(0x100820);
+  type(sad[Math.min(lvl-1,4)]);yes.style.transform='scale('+(1+lvl*.16)+')';yes.style.margin=lvl*3+'px';no.style.transform='scale('+Math.max(.45,1-lvl*.13)+')';
+  no.textContent=noTxt[Math.min(lvl,4)];petals(['🥀','💧','🚽'],3+lvl*2,6);card.classList.add('shk');setTimeout(()=>card.classList.remove('shk'),700);
+  msg(['Hmm… 🤨','Soch rahi hoon','Abhi bhi gussa hoon','Thoda aur manao','…'][Math.min(lvl-1,4)],0);if(lvl>=5)no.style.display='none'};
+function accept(){mood='major';ni=0;no.style.display='none';yes.style.display='none';hm.color.setHex(0xff4f7e);hm.emissive.setHex(0x6a0c2c);bloom();buzz([100,60,100,60,400]);
+  msg('Chalo maaf kiya 🤍',0);[523,659,784,1047].forEach((f,k)=>tone(f,1.2,'sine',.08,k*.15));
+  type('Shukriya, Areshey. 💖\nTumhari maafi ne mere poore din ko roshan kar diya.\nAb tumhara intizar kabhi lamba nahi hone dunga. 🌹');
+  let c=0;const iv=setInterval(()=>{petals(['💖','🌹','✨','🚽'],4,5);if(++c>45)clearInterval(iv)},250)}
+// ---------- loop ----------
+const clock=new THREE.Clock();let prev=0;
+function loop(){const t=clock.getElapsedTime();
+  camP.lerp(tgP,.035);camL.lerp(tgL,.035);cam.position.set(camP.x+mx*.35,camP.y-my*.25,camP.z);cam.lookAt(camL);
+  phone.rotation.y=Math.sin(t*.8)*.3+mx*.2;phone.position.y=1.7+Math.sin(t*1.3)*.08;
+  if(phone.userData.pop>0){phone.scale.setScalar(1+Math.sin(phone.userData.pop*12)*.06*phone.userData.pop);phone.userData.pop-=.03}else phone.scale.setScalar(1);
+  hS.rotation.z=-(i===3?sec/60*Math.PI*2:t*.5);hM.rotation.z=-(i===3?sec/300*Math.PI*2:t*.04);
+  door.rotation.y+=((open?-1.45:0)-door.rotation.y)*.05;
+  heart.visible=heart.visible&&!burst;const hsz=hs&&!burst?1.5*(1-lvl*.04)*(1+.07*Math.pow(Math.max(0,Math.sin(t*3)),4)):0;
+  heart.scale.setScalar(THREE.MathUtils.lerp(heart.scale.x,hsz,.08));heart.rotation.y=t*.7;
+  if(burst){const p=burst.geometry.attributes.position;for(let k=0;k<bv.length;k++){p.array[k*3]+=bv[k].x;p.array[k*3+1]+=bv[k].y;p.array[k*3+2]+=bv[k].z;bv[k].multiplyScalar(.985)}p.needsUpdate=true}
+  lamp.intensity=1.4+Math.sin(t*20)*(i===3?.4:0);dust.rotation.y=t*.03;dust.position.y=Math.sin(t*.6)*.25;
+  R.render(scene,cam);requestAnimationFrame(loop)}
+draw();go(0);loop();setInterval(()=>petals(['🌸','🌹','✨'],1,9),1600);
+addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
+</script>
+</body>
+</html>
